@@ -36,6 +36,13 @@ def find_all_mp3s(path: Path) -> List[Path]:
         lst.append(path.relative_to(BASEPATH))
     return lst
 
+def load_mp3(path: Path):
+    try:
+        audio = EasyID3(path)
+    except ID3NoHeaderError:
+        audio = mutagen.File(path, easy=True)
+        audio.add_tags()
+    return audio
 
 def tag_song(filepath: Path, **attrs) -> None:
     """
@@ -64,11 +71,7 @@ def tag_song(filepath: Path, **attrs) -> None:
      'musicbrainz_releasegroupid', 'musicbrainz_workid', 'acoustid_fingerprint', 'acoustid_id'
     """
 
-    try:
-        audio = EasyID3(BASEPATH / filepath)
-    except ID3NoHeaderError:
-        audio = mutagen.File(BASEPATH / filepath, easy=True)
-        audio.add_tags()
+    audio = load_mp3(BASEPATH/filepath)
 
     for k, v in attrs.items():
         audio[k] = v
@@ -79,12 +82,7 @@ def tag_song(filepath: Path, **attrs) -> None:
 def get_table(path: Path) -> pd.DataFrame:
     df = pd.DataFrame()
     for f in find_all_mp3s(path):
-        try:
-            audio = EasyID3(BASEPATH/f)
-        #    df = df.append(pd.DataFrame.from_dict({**dict(audio), 'filename': f}))
-        except ID3NoHeaderError:
-            audio = mutagen.File(BASEPATH/f, easy=True)
-            audio.add_tags()
+        audio = load_mp3(BASEPATH/f)
         if not dict(audio).keys():
             df = df.append(pd.DataFrame.from_dict({'filename': [f]}))
         else:
