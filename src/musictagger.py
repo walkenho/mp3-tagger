@@ -12,6 +12,7 @@ GENRE = 'genre'
 ARTIST = 'artist'
 ENCODEDBY = 'encodedby'
 COPYRIGHT = 'copyright'
+TRACKNUMBER = 'tracknumber'
 
 
 def find_artists() -> List[Path]:
@@ -92,22 +93,47 @@ def extract_track_number(mystr):
     return int(str(mystr).split('/')[0])
 
 
-def create_new_track_nr(track_int, artist, album, disc_int, mydict):
+def create_combined_track_nr(track_int, artist, album, disc_int, mydict):
     return f"{track_int:02}/{mydict[(artist, album, disc_int)]}"
 
 
-def create_new_disc_nr(disc_int, artist, album, mydict):
+def create_combined_disc_nr(disc_int, artist, album, mydict):
     return f"{disc_int}/{mydict[(artist, album)]}"
 
 
-def set_track_and_disc_number(df):
+def set_combined_track_number(df: pd.DataFrame) -> None:
     if DISCNUMBER not in df.columns:
         df['disc_int'] = 1
+        del_discnumber = True
     else:
         df[DISCNUMBER] = df[DISCNUMBER].fillna(1)
         df['disc_int'] = df[DISCNUMBER].map(lambda x: extract_track_number(x))
+        del_discnumber = False
 
-    df['track_int'] = df['tracknumber'].map(lambda x: extract_track_number(x))
+    df['track_int'] = df[TRACKNUMBER].map(lambda x: extract_track_number(x))
+
+    if 'albumartist' not in df.columns:
+        df['albumartist'] = df['artist']
+        del_albumartist = True
+    else:
+        del_albumartist = False
+
+    max_track_dict = df.groupby(['albumartist', ALBUM, 'disc_int']).max('track_int').to_dict()['track_int']
+
+    df[TRACKNUMBER] = df[['track_int', 'albumartist', ALBUM, 'disc_int']].apply(
+        lambda x: create_combined_track_nr(x[0], x[1], x[2], x[3], max_track_dict), axis=1)
+
+    df.drop(['track_int', 'disc_int'], axis=1, inplace=True)
+
+    if del_discnumber:
+        df.drop([DISCNUMBER], axis=1, inplace=True)
+    if del_albumartist:
+        df.drop(['albumartist'], axis=1, inplace=True)
+
+
+def set_combined_disc_number(df: pd.DataFrame) -> None:
+    df[DISCNUMBER] = df[DISCNUMBER].fillna(1)
+    df['disc_int'] = df[DISCNUMBER].map(lambda x: extract_track_number(x))
 
     if 'albumartist' not in df.columns:
         df['albumartist'] = df['artist']
@@ -116,14 +142,11 @@ def set_track_and_disc_number(df):
         del_albumartist = False
 
     max_disc_dict = df.groupby(['albumartist', ALBUM]).max('disc_int').to_dict()['disc_int']
-    max_track_dict = df.groupby(['albumartist', ALBUM, 'disc_int']).max('track_int').to_dict()['track_int']
 
-    df['tracknumber'] = df[['track_int', 'albumartist', ALBUM, 'disc_int']].apply(
-        lambda x: create_new_track_nr(x[0], x[1], x[2], x[3], max_track_dict), axis=1)
     df[DISCNUMBER] = df[['disc_int', 'albumartist', ALBUM]].apply(
-        lambda x: create_new_disc_nr(x[0], x[1], x[2], max_disc_dict), axis=1)
+        lambda x: create_combined_disc_nr(x[0], x[1], x[2], max_disc_dict), axis=1)
 
-    df.drop(['track_int', 'disc_int'], axis=1, inplace=True)
+    df.drop(['disc_int'], axis=1, inplace=True)
 
     if del_albumartist:
         df.drop(['albumartist'], axis=1, inplace=True)

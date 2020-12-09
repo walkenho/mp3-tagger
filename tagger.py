@@ -4,17 +4,19 @@ import pandas as pd
 import streamlit as st
 
 from musictagger import BASEPATH, find_artists, get_table, delete_column, \
-    retag, find_albums_for_artist, set_track_and_disc_number, get_tags, extract_options, \
-    DISCNUMBER, ALBUM, GENRE, ARTIST, ENCODEDBY, COPYRIGHT
+    retag, find_albums_for_artist, get_tags, extract_options, \
+    DISCNUMBER, ALBUM, GENRE, ARTIST, ENCODEDBY, COPYRIGHT, set_combined_track_number, set_combined_disc_number, \
+    TRACKNUMBER
 
 
 def update_based_on_previous_value(df: pd.DataFrame, column: str) -> None:
     new_selection = st.sidebar.selectbox(f'Update {column}',
-                                               options=extract_options(df, column) + ['Update Manually'])
+                                         options=extract_options(df, column) + ['Update Manually'])
     if new_selection != 'Update Manually':
         df[column] = new_selection
     else:
         df[column] = st.sidebar.text_input(f'Provide a new entry for {column}', '')
+
 
 st.title("Welcome to the Music Tagger")
 st.markdown("""## Instructions:
@@ -36,7 +38,7 @@ if artist != "None" and album != "None":
     if album == "All":
         df = get_table(BASEPATH / artist)
     else:
-        df = get_table(BASEPATH/artist/album)
+        df = get_table(BASEPATH / artist / album)
 
     st.markdown("### Original Tags:")
     st.write(df)
@@ -50,12 +52,15 @@ if artist != "None" and album != "None":
     if st.sidebar.checkbox(f"Update {GENRE}"):
         update_based_on_previous_value(df, GENRE)
 
+    if st.sidebar.checkbox(f'Cast {TRACKNUMBER} to n/m format'):
+        set_combined_track_number(df)
+
     if st.sidebar.checkbox(f"Set {DISCNUMBER}"):
         disc_number = st.sidebar.text_input(f"Set {DISCNUMBER}")
         df[DISCNUMBER] = disc_number
 
-    if st.sidebar.checkbox('Reformat track numbers and disc numbers'):
-        set_track_and_disc_number(df)
+    if st.sidebar.checkbox(f'Cast {DISCNUMBER} to n/m format'):
+        set_combined_disc_number(df)
 
     if st.sidebar.checkbox(f'Delete {ENCODEDBY}'):
         delete_column(df, ENCODEDBY)
