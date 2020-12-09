@@ -7,6 +7,12 @@ from mutagen.easyid3 import EasyID3
 
 BASEPATH = Path('/media/walkenho/Seagate Backup Plus Drive/Eigene Musik')
 
+DISCNUMBER = 'discnumber'
+ALBUM = 'album'
+GENRE = 'genre'
+ARTIST = 'artist'
+ENCODEDBY = 'encodedby'
+COPYRIGHT = 'copyright'
 
 def find_artists() -> List[Path]:
     return [p.relative_to(BASEPATH) for p in BASEPATH.glob("*")]
@@ -38,9 +44,13 @@ def tag_song(filepath: Path, **attrs) -> None:
     * 'tracknumber'
     * 'genre'
     * 'language'
+    * encodedby
+    * copyright
+    * title
+
     * 'bpm', 'compilation',
-    'composer', 'copyright', 'encodedby', 'lyricist', 'length', 'media', 'mood',
-    'title', 'version', 'conductor', 'arranger',  'organization',
+    'composer', 'lyricist', 'length', 'media', 'mood',
+    'version', 'conductor', 'arranger',  'organization',
     'author', 'albumartistsort', 'albumsort', 'composersort', 'artistsort', 'titlesort',
     'isrc', 'discsubtitle', 'originaldate', 'performer:*', 'musicbrainz_trackid',
     'website', 'replaygain_*_gain', 'replaygain_*_peak', 'musicbrainz_artistid', 'musicbrainz_albumid',
@@ -77,16 +87,8 @@ def retag(mydict: dict) -> None:
         tag_song(path, **tags)
 
 
-def delete_copyright(df: pd.DataFrame):
-    df['copyright'] = None
-
-
-def delete_url(df: pd.DataFrame):
-    df['url'] = None
-
-
-def delete_comment(df: pd.DataFrame):
-    df['comment'] = None
+def delete_column(df: pd.DataFrame, column: str):
+    df[column] = None
 
 
 def extract_track_number(mystr):
@@ -102,11 +104,11 @@ def create_new_disc_nr(disc_int, artist, album, mydict):
 
 
 def set_track_and_disc_number(df):
-    if 'discnumber' not in df.columns:
+    if DISCNUMBER not in df.columns:
         df['disc_int'] = 1
     else:
-        df['discnumber'] = df['discnumber'].fillna(1)
-        df['disc_int'] = df['discnumber'].map(lambda x: extract_track_number(x))
+        df[DISCNUMBER] = df[DISCNUMBER].fillna(1)
+        df['disc_int'] = df[DISCNUMBER].map(lambda x: extract_track_number(x))
 
     df['track_int'] = df['tracknumber'].map(lambda x: extract_track_number(x))
 
@@ -116,12 +118,12 @@ def set_track_and_disc_number(df):
     else:
         del_albumartist = False
 
-    max_disc_dict = df.groupby(['albumartist', 'album']).max('disc_int').to_dict()['disc_int']
-    max_track_dict = df.groupby(['albumartist', 'album', 'disc_int']).max('track_int').to_dict()['track_int']
+    max_disc_dict = df.groupby(['albumartist', ALBUM]).max('disc_int').to_dict()['disc_int']
+    max_track_dict = df.groupby(['albumartist', ALBUM, 'disc_int']).max('track_int').to_dict()['track_int']
 
-    df['tracknumber'] = df[['track_int', 'albumartist', 'album', 'disc_int']].apply(
+    df['tracknumber'] = df[['track_int', 'albumartist', ALBUM, 'disc_int']].apply(
         lambda x: create_new_track_nr(x[0], x[1], x[2], x[3], max_track_dict), axis=1)
-    df['discnumber'] = df[['disc_int', 'albumartist', 'album']].apply(
+    df[DISCNUMBER] = df[['disc_int', 'albumartist', ALBUM]].apply(
         lambda x: create_new_disc_nr(x[0], x[1], x[2], max_disc_dict), axis=1)
 
     df.drop(['track_int', 'disc_int'], axis=1, inplace=True)
@@ -129,5 +131,5 @@ def set_track_and_disc_number(df):
         df.drop(['albumartist'], axis=1, inplace=True)
 
 
-def extract_possible_genres(df):
-    return list(df['genre'].drop_duplicates().values)
+def extract_options(df, column):
+    return list(df[column].drop_duplicates().values)

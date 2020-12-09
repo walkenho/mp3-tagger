@@ -2,8 +2,18 @@ import string
 
 import streamlit as st
 
-from musictagger import BASEPATH, find_artists, get_table, delete_comment, delete_url, delete_copyright, \
-    retag, find_albums_for_artist, set_track_and_disc_number, get_tags, extract_possible_genres
+from musictagger import BASEPATH, find_artists, get_table, delete_column, \
+    retag, find_albums_for_artist, set_track_and_disc_number, get_tags, extract_options, \
+    DISCNUMBER, ALBUM, GENRE, ARTIST, ENCODEDBY, COPYRIGHT
+
+
+def update_based_on_previous_value(df, column):
+    new_selection = st.sidebar.selectbox(f'Update {column}',
+                                               options=extract_options(df, column) + ['Update Manually'])
+    if new_selection != 'Update Manually':
+        df[column] = new_selection
+    else:
+        df[column] = st.sidebar.text_input(f'Provide a new entry for {column}', '')
 
 st.title("Welcome to the Music Tagger")
 st.markdown("""## Instructions:
@@ -12,50 +22,47 @@ st.markdown("""## Instructions:
 3. Check the results.
 4. If you are happy with the results, press Save.""")
 
-artists = find_artists()
+st.sidebar.markdown("# Cleaning Tools")
 
 starts_with = st.selectbox('Starting letter', list(string.ascii_uppercase))
 
 artist = st.selectbox("Select Artist", ["None"] + [a for a in find_artists() if str(a).upper().startswith(starts_with)])
 
-album = st.selectbox("Select Album", ["None", "Any"] + [a for a in find_albums_for_artist(artist)])
+album = st.selectbox("Select Album", ["None", "All"] + [a for a in find_albums_for_artist(artist)])
 
 if artist != "None" and album != "None":
     # make table
-    if album == "Any":
+    if album == "All":
         df = get_table(BASEPATH / artist)
     else:
         df = get_table(BASEPATH/artist/album)
 
-    st.write("Old Tags:")
+    st.markdown("### Original Tags:")
     st.write(df)
 
-    delete_comment_box = st.sidebar.checkbox('Delete Comments')
-    if delete_comment_box:
-        delete_comment(df)
+    if st.sidebar.checkbox(f"Update {ALBUM}"):
+        update_based_on_previous_value(df, ALBUM)
 
-    delete_url_box = st.sidebar.checkbox('Delete URL')
-    if delete_url_box:
-        delete_url(df)
+    if st.sidebar.checkbox(f"Update {ARTIST}"):
+        update_based_on_previous_value(df, ARTIST)
 
-    delete_copyright_box = st.sidebar.checkbox('Delete Copyright')
-    if delete_copyright_box:
-        delete_copyright(df)
+    if st.sidebar.checkbox(f"Update {GENRE}"):
+        update_based_on_previous_value(df, GENRE)
 
-    renumber_tracks_box = st.sidebar.checkbox('Update Tracks and Disc numbers')
-    if renumber_tracks_box:
+    if st.sidebar.checkbox(f"Set {DISCNUMBER}"):
+        disc_number = st.sidebar.text_input(f"Set {DISCNUMBER}")
+        df[DISCNUMBER] = disc_number
+
+    if st.sidebar.checkbox('Reformat track numbers and disc numbers'):
         set_track_and_disc_number(df)
 
-    update_genre_box = st.sidebar.checkbox("Update Genre")
-    if update_genre_box:
-        new_genre_selection = st.sidebar.selectbox('Update Genre', options=extract_possible_genres(df) + ['Other'])
-        if new_genre_selection == 'Other':
-            new_genre = st.sidebar.text_input('Provide the name for the new Genre', '')
-        else:
-            new_genre = new_genre_selection
-        df['genre'] = new_genre
+    if st.sidebar.checkbox(f'Delete {ENCODEDBY}'):
+        delete_column(df, ENCODEDBY)
 
-    st.write("New Tags:")
+    if st.sidebar.checkbox(f'Delete {COPYRIGHT}'):
+        delete_column(df, COPYRIGHT)
+
+    st.markdown("### Updated Tags:")
     st.write(df)
 
     save_button = st.button("Save")
