@@ -1,4 +1,5 @@
 import string
+import pandas as pd
 
 import streamlit as st
 
@@ -7,7 +8,7 @@ from musictagger import BASEPATH, find_artists, get_table, delete_column, \
     DISCNUMBER, ALBUM, GENRE, ARTIST, ENCODEDBY, COPYRIGHT
 
 
-def update_based_on_previous_value(df, column):
+def update_based_on_previous_value(df: pd.DataFrame, column: str) -> None:
     new_selection = st.sidebar.selectbox(f'Update {column}',
                                                options=extract_options(df, column) + ['Update Manually'])
     if new_selection != 'Update Manually':
