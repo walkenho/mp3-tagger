@@ -1,5 +1,4 @@
 from pathlib import Path
-from mp3_tagger import MP3File, VERSION_1, VERSION_2, VERSION_BOTH, MP3OpenFileError
 import pandas as pd
 from typing import List
 
