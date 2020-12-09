@@ -1,8 +1,11 @@
 from pathlib import Path
+
+import mutagen
 import pandas as pd
 from typing import List
 
 from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3NoHeaderError
 
 BASEPATH = Path('/media/walkenho/Seagate Backup Plus Drive/Eigene Musik')
 
@@ -61,7 +64,11 @@ def tag_song(filepath: Path, **attrs) -> None:
      'musicbrainz_releasegroupid', 'musicbrainz_workid', 'acoustid_fingerprint', 'acoustid_id'
     """
 
-    audio = EasyID3(BASEPATH / filepath)
+    try:
+        audio = EasyID3(BASEPATH / filepath)
+    except ID3NoHeaderError:
+        audio = mutagen.File(BASEPATH / filepath, easy=True)
+        audio.add_tags()
 
     for k, v in attrs.items():
         audio[k] = v
@@ -72,7 +79,16 @@ def tag_song(filepath: Path, **attrs) -> None:
 def get_table(path: Path) -> pd.DataFrame:
     df = pd.DataFrame()
     for f in find_all_mp3s(path):
-        df = df.append(pd.DataFrame.from_dict({**dict(EasyID3(BASEPATH/f)), 'filename': f}))
+        try:
+            audio = EasyID3(BASEPATH/f)
+        #    df = df.append(pd.DataFrame.from_dict({**dict(audio), 'filename': f}))
+        except ID3NoHeaderError:
+            audio = mutagen.File(BASEPATH/f, easy=True)
+            audio.add_tags()
+        if not dict(audio).keys():
+            df = df.append(pd.DataFrame.from_dict({'filename': [f]}))
+        else:
+            df = df.append(pd.DataFrame.from_dict({**dict(audio), 'filename': f}))
     return df
 
 
