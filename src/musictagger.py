@@ -118,11 +118,9 @@ def create_combined_disc_nr(disc_int, artist, album, mydict):
 def set_combined_track_number(df: pd.DataFrame) -> None:
     if DISCNUMBER not in df.columns:
         df['disc_int'] = 1
-        del_discnumber = True
     else:
         df[DISCNUMBER] = df[DISCNUMBER].fillna(1)
         df['disc_int'] = df[DISCNUMBER].map(lambda x: extract_track_number(x))
-        del_discnumber = False
 
     df['track_int'] = df[TRACKNUMBER].map(lambda x: extract_track_number(x))
 
@@ -139,8 +137,6 @@ def set_combined_track_number(df: pd.DataFrame) -> None:
 
     df.drop(['track_int', 'disc_int'], axis=1, inplace=True)
 
-    if del_discnumber:
-        df.drop([DISCNUMBER], axis=1, inplace=True)
     if del_albumartist:
         df.drop(['albumartist'], axis=1, inplace=True)
 
