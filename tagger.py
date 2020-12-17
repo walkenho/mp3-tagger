@@ -3,10 +3,10 @@ import pandas as pd
 
 import streamlit as st
 
-from musictagger import BASEPATH, find_artists, get_table, delete_column, \
-    retag, find_albums_for_artist, get_tags, extract_options, \
+from musictagger import BASEPATH, find_artists_for_category, get_table, delete_column, \
+    retag, find_albums_for_category_and_artist, get_tags, extract_options, \
     DISCNUMBER, ALBUM, GENRE, ARTIST, ENCODEDBY, COPYRIGHT, set_combined_track_number, set_combined_disc_number, \
-    TRACKNUMBER
+    TRACKNUMBER, find_categories
 
 
 def update_based_on_previous_value(df: pd.DataFrame, column: str) -> None:
@@ -26,19 +26,34 @@ st.markdown("""## Instructions:
 4. If you are happy with the results, press Save.""")
 
 st.sidebar.markdown("# Cleaning Tools")
+category = st.selectbox("Select Category", ["None", "Any"] + list(find_categories()))
 
-starts_with = st.selectbox('Starting letter', list(string.ascii_uppercase))
+possible_starting_letters = [str(artist)[0].upper() for artist in find_artists_for_category(category)]
 
-artist = st.selectbox("Select Artist", ["None"] + [a for a in find_artists() if str(a).upper().startswith(starts_with)])
+starts_with = st.selectbox('Starting letter',  possible_starting_letters + ['Any'])
 
-album = st.selectbox("Select Album", ["None", "All"] + [a for a in find_albums_for_artist(artist)])
+if starts_with != 'Any':
+    artist = st.selectbox("Select Artist", ["None", "Any"]
+                      + [a for a in find_artists_for_category(category) if str(a).upper().startswith(starts_with)])
+else:
+    artist = st.selectbox("Select Artist", ["None", "Any"]
+                          + [a for a in find_artists_for_category(category)])
 
-if artist != "None" and album != "None":
+if artist == "Any":
+    album_options = ["Any"]
+else:
+    album_options = ["None", "Any"] + [a for a in find_albums_for_category_and_artist(category, artist)]
+
+album = st.selectbox("Select Album", album_options)
+
+if album != "None":
     # make table
-    if album == "All":
-        df = get_table(BASEPATH / artist)
+    if artist == "Any":
+        df = get_table(BASEPATH)
+    elif album == "Any":
+        df = get_table(BASEPATH / category / artist)
     else:
-        df = get_table(BASEPATH / artist / album)
+        df = get_table(BASEPATH / category / artist / album)
 
     st.markdown("### Original Tags:")
     st.write(df)
