@@ -6,8 +6,11 @@ from typing import List
 
 from mutagen.asf import ASFError
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3NoHeaderError
-from mutagen.mp3 import HeaderNotFoundError, error
+from mutagen.id3 import ID3NoHeaderError, ID3, APIC
+from mutagen.mp3 import HeaderNotFoundError, error, MP3
+
+from datetime import datetime
+import json
 
 BASEPATH = Path('/media/walkenho/Seagate Backup Plus Drive/Eigene Musik')
 
@@ -15,15 +18,23 @@ DISCNUMBER = 'discnumber'
 ALBUM = 'album'
 GENRE = 'genre'
 ARTIST = 'artist'
+ALBUMARTIST = 'albumartist'
 ENCODEDBY = 'encodedby'
 COPYRIGHT = 'copyright'
 TRACKNUMBER = 'tracknumber'
+TITLE = 'title'
+DATE = 'date'
+LANGUAGE = 'language'
+LENGTH = 'length'
+
 
 def find_categories() -> List[Path]:
     return [p.relative_to(BASEPATH) for p in BASEPATH.glob("*")]
 
+
 def find_artists_for_category(category:str) -> List[Path]:
     return [p.relative_to(BASEPATH/category) for p in (BASEPATH/category).glob("*")]
+
 
 def find_albums_for_category_and_artist(category: str, artist: str) -> List[Path]:
     return [p.relative_to(BASEPATH/category/artist) for p in (BASEPATH/category/artist).glob("*")]
@@ -44,7 +55,7 @@ def load_mp3(path: Path):
     try:
         audio = EasyID3(path)
         return audio
-    except (ID3NoHeaderError):
+    except ID3NoHeaderError:
         try:
             audio = mutagen.File(path, easy=True)
             audio.add_tags()
@@ -75,6 +86,7 @@ def tag_song(filepath: Path, **attrs) -> None:
     * encodedby
     * copyright
     * title
+    * length
 
     * 'bpm', 'compilation',
     'composer', 'lyricist', 'length', 'media', 'mood',
@@ -112,24 +124,25 @@ def get_tags(df: pd.DataFrame) -> dict:
     return df.set_index('filename').to_dict('index')
 
 
-def retag(mydict: dict) -> None:
-    for path, tags in mydict.items():
-        tag_song(path, **tags)
+def retag(tags: dict) -> None:
+    for filepath, tags in tags.items():
+        tag_song(filepath, **tags)
 
 
 def delete_column(df: pd.DataFrame, column: str):
-    df[column] = None
+    #todo: actually drop tags
+    df[column] = ""
 
 
-def extract_track_number(mystr):
+def extract_track_number(mystr: str) -> int:
     return int(str(mystr).split('/')[0])
 
 
-def create_combined_track_nr(track_int, artist, album, disc_int, mydict):
+def create_combined_track_nr(track_int: int, artist: str, album: str, disc_int: int, mydict: dict) -> str:
     return f"{track_int:02}/{mydict[(artist, album, disc_int)]}"
 
 
-def create_combined_disc_nr(disc_int, artist, album, mydict):
+def create_combined_disc_nr(disc_int: int, artist: str, album: str, mydict: dict) -> str:
     return f"{disc_int}/{mydict[(artist, album)]}"
 
 
@@ -181,10 +194,14 @@ def set_combined_disc_number(df: pd.DataFrame) -> None:
 
 
 def extract_options(df, column):
-    return list(df[column].drop_duplicates().values)
+    try:
+        options = list(df[column].drop_duplicates().values)
+    except KeyError:
+        options = []
+    return options
 
 
-def collect_data(path):
+def collect_data(path: Path):
     results = []
     skip_counter = 0
     untagged_counter = 0
@@ -201,30 +218,40 @@ def collect_data(path):
     return results, skip_counter, untagged_counter, files_total
 
 
+def add_albumart(audio_path, image_path):
+    audio = MP3(audio_path, ID3=ID3)
+    #TODO: Decide on error handling
+    audio.tags.add(APIC(mime='image/jpeg', type=3, desc=u'Cover', data=open(image_path, 'rb').read()))
+    audio.save()  # save the current changes
+
+
 if __name__ == '__main__':
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     results = []
     skip_counter = 0
     untagged_counter = 0
     files_counter = 0
     folders = (BASEPATH).glob('*')
-    for folder in folders:
-        res, c, t, f = collect_data(BASEPATH/folder)
-        print(folder)
-        results = results + res
-        skip_counter = skip_counter + c
-        untagged_counter = untagged_counter + t
-        files_counter = files_counter + f
-        if c != 0:
-            print(f"{c} files skipped in this folder. Now {skip_counter} files skipped in total.")
-        if t !=0:
-            print(f"{t} files completely untagged. Now {untagged_counter} completely untagged.")
 
-    print(f"{files_counter} mp3s analyzed")
-    print(f"{len(results)} mp3s were added to table")
-    print(f"{skip_counter} files skipped")
-    print(f"{files_counter} should be equal to {len(results) + skip_counter}")
-    print(f"{untagged_counter} completely untagged")
+    with open('details_'+timestamp+'.txt', 'w') as f:
+        for folder in folders:
+            res, sc, uc, fc = collect_data(BASEPATH/folder)
+            f.writelines(f"Entering folder {str(folder)}.\n")
+            for entry in res:
+                entry['filename'] = str(entry['filename'])
+                results = results + [entry]
+            skip_counter = skip_counter + sc
+            untagged_counter = untagged_counter + uc
+            files_counter = files_counter + fc
+            if sc != 0:
+                f.writelines(f"{sc} files skipped in this folder. Now {skip_counter} files skipped in total.\n")
+            if uc !=0:
+                f.writelines(f"{uc} files without tags in this folder. Now {untagged_counter} without tags in total\n")
+        f.writelines("======================\n")
+        f.writelines(f"{files_counter} mp3s analyzed\n")
+        f.writelines(f"{len(results)} mp3s were added to table\n")
+        f.writelines(f"{skip_counter} files skipped\n")
+        f.writelines(f"Out of the ingested, {untagged_counter} completely untagged\n")
 
-
-    #TODO: Sth here isn't right yet. A lot of files seem to get skipped, but don't error. How can this be?
-    #TODO: Use example folder for Aventura (for example).
+    with open('data_'+timestamp+'.json', 'w', encoding='utf-8') as f:
+        json.dump(results, f, ensure_ascii=False, indent=4)
