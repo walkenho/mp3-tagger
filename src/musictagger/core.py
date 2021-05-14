@@ -28,17 +28,6 @@ LANGUAGE = 'language'
 LENGTH = 'length'
 
 
-def find_categories() -> List[Path]:
-    return [p.relative_to(BASEPATH) for p in BASEPATH.glob("*")]
-
-
-def find_artists_for_category(category:str) -> List[Path]:
-    return [p.relative_to(BASEPATH/category) for p in (BASEPATH/category).glob("*")]
-
-
-def find_albums_for_category_and_artist(category: str, artist: str) -> List[Path]:
-    return [p.relative_to(BASEPATH/category/artist) for p in (BASEPATH/category/artist).glob("*")]
-
 
 def find_all_mp3s(path: Path) -> List[Path]:
     lst = []
