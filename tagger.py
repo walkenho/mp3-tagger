@@ -39,6 +39,7 @@ if folder:
             if tagtable[category].isnull().values.any():
                 st.warning(f"{category}: Contains Nulls - filling with empty string")
                 tagtable[category].fillna('', inplace=True)
+            st.warning(f"{category}: Tags not found")
 
     if problem_counter == 0:
         st.success(f"No inconsistencies detected")
