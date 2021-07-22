@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 
 import mutagen
@@ -26,7 +27,7 @@ TITLE = 'title'
 DATE = 'date'
 LANGUAGE = 'language'
 LENGTH = 'length'
-
+COMPOSER= 'composer'
 
 
 def find_all_mp3s(path: Path) -> List[Path]:
@@ -123,8 +124,13 @@ def delete_column(df: pd.DataFrame, column: str):
     df[column] = ""
 
 
-def extract_track_number(mystr: str) -> int:
-    return int(str(mystr).split('/')[0])
+def track_number_from_track_total_track_combination(track_string:str) -> int:
+    """Extract the numerical tracknumber from a string track number.
+     Input can be of format:
+    * track
+    * track/total tracks
+    """
+    return int(str(track_string).split('/')[0])
 
 
 def create_combined_track_nr(track_int: int, artist: str, album: str, disc_int: int, mydict: dict) -> str:
@@ -140,9 +146,9 @@ def set_combined_track_number(df: pd.DataFrame) -> None:
         df['disc_int'] = 1
     else:
         df[DISCNUMBER] = df[DISCNUMBER].fillna(1)
-        df['disc_int'] = df[DISCNUMBER].map(lambda x: extract_track_number(x))
+        df['disc_int'] = df[DISCNUMBER].map(lambda x: track_number_from_track_total_track_combination(x))
 
-    df['track_int'] = df[TRACKNUMBER].map(lambda x: extract_track_number(x))
+    df['track_int'] = df[TRACKNUMBER].map(lambda x: track_number_from_track_total_track_combination(x))
 
     if 'albumartist' not in df.columns:
         df['albumartist'] = df['artist']
@@ -236,6 +242,8 @@ if __name__ == '__main__':
                 f.writelines(f"{sc} files skipped in this folder. Now {skip_counter} files skipped in total.\n")
             if uc !=0:
                 f.writelines(f"{uc} files without tags in this folder. Now {untagged_counter} without tags in total\n")
+
+    with open('summary_'+timestamp+'.txt', 'w') as f:
         f.writelines("======================\n")
         f.writelines(f"{files_counter} mp3s analyzed\n")
         f.writelines(f"{len(results)} mp3s were added to table\n")
