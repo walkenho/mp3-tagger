@@ -1,3 +1,5 @@
+import glob
+from dataclasses import dataclass
 from pathlib import Path
 
 import mutagen
@@ -12,7 +14,8 @@ from mutagen.mp3 import HeaderNotFoundError, error, MP3
 from datetime import datetime
 import json
 
-BASEPATH = Path('/media/walkenho/Seagate Backup Plus Drive/Eigene Musik')
+#BASEPATH = Path('/media/walkenho/Seagate Backup Plus Drive/Eigene Musik')
+BASEPATH = Path('/home/walkenho/repositories/music-tagger/Juliane Werding/')
 
 DISCNUMBER = 'discnumber'
 ALBUM = 'album'
@@ -29,17 +32,29 @@ LENGTH = 'length'
 COMPOSER= 'composer'
 
 
+def find_all_mp3s(path):
+    return [Path(filename) for filename in
+               glob.iglob(str(path / '**' / '*.mp3'), recursive=True)]
 
 
-def find_all_mp3s(path: Path) -> List[Path]:
-    lst = []
-    if path.is_dir():
-        for f in path.glob("*"):
-            res = find_all_mp3s(f)
-            lst = lst + res
-    elif str(path).lower().endswith('.mp3'):
-        lst.append(path.relative_to(BASEPATH))
-    return lst
+@dataclass
+class MP3Table:
+    path: Path
+    data: pd.DataFrame = pd.DataFrame()
+
+    def load(self):
+        self.data = pd.DataFrame()
+        for f in find_all_mp3s(self.path):
+            audio = load_mp3(f)
+            if audio:
+                if not dict(audio).keys():
+                    self.data = self.data.append(pd.DataFrame.from_dict({'filename': [f.relative_to(BASEPATH)]}))
+                else:
+                    self.data = self.data.append(pd.DataFrame.from_dict({**dict(audio), 'filename': f.relative_to(BASEPATH)}))
+
+    def retag(self):
+        for filename, row in self.data.set_index('filename').iterrows():
+            tag_song(BASEPATH/filename, **row.to_dict())
 
 
 def load_mp3(path: Path):
@@ -91,33 +106,12 @@ def tag_song(filepath: Path, **attrs) -> None:
      'musicbrainz_releasegroupid', 'musicbrainz_workid', 'acoustid_fingerprint', 'acoustid_id'
     """
 
-    audio = load_mp3(BASEPATH/filepath)
+    audio = load_mp3(filepath)
 
     for k, v in attrs.items():
         audio[k] = v
 
     audio.save()
-
-
-def get_table(path: Path) -> pd.DataFrame:
-    df = pd.DataFrame()
-    for f in find_all_mp3s(path):
-        audio = load_mp3(BASEPATH/f)
-        if audio:
-            if not dict(audio).keys():
-                df = df.append(pd.DataFrame.from_dict({'filename': [f]}))
-            else:
-                df = df.append(pd.DataFrame.from_dict({**dict(audio), 'filename': f}))
-    return df
-
-
-def get_tags(df: pd.DataFrame) -> dict:
-    return df.set_index('filename').to_dict('index')
-
-
-def retag(tags: dict) -> None:
-    for filepath, tags in tags.items():
-        tag_song(filepath, **tags)
 
 
 def delete_column(df: pd.DataFrame, column: str):
@@ -170,7 +164,7 @@ def set_combined_track_number(df: pd.DataFrame) -> None:
 
 def set_combined_disc_number(df: pd.DataFrame) -> None:
     df[DISCNUMBER] = df[DISCNUMBER].fillna(1)
-    df['disc_int'] = df[DISCNUMBER].map(lambda x: extract_track_number(x))
+    df['disc_int'] = df[DISCNUMBER].map(lambda x: track_number_from_track_total_track_combination(x))
 
     if 'albumartist' not in df.columns:
         df['albumartist'] = df['artist']
@@ -204,7 +198,7 @@ def collect_data(path: Path):
     files_total = 0
     for f in find_all_mp3s(path):
         files_total = files_total + 1
-        audio = load_mp3(BASEPATH/f)
+        audio = load_mp3(f)
         if audio is not None:
             results.append({**{k: v[0] for k, v in {**dict(audio)}.items()}, 'filename': BASEPATH / f})
             if not audio:
@@ -219,6 +213,7 @@ def add_albumart(audio_path, image_path):
     #TODO: Decide on error handling
     audio.tags.add(APIC(mime='image/jpeg', type=3, desc=u'Cover', data=open(image_path, 'rb').read()))
     audio.save()  # save the current changes
+
 
 
 if __name__ == '__main__':
