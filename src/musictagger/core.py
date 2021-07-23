@@ -56,6 +56,14 @@ class MP3Table:
         for filename, row in self.data.set_index('filename').iterrows():
             tag_song(BASEPATH/filename, **row.to_dict())
 
+    @property
+    def entries(self, category):
+        try:
+            return self.data[category].unique().tolist()
+        except KeyError:
+            return []
+
+
 
 def load_mp3(path: Path):
     try:
@@ -183,12 +191,14 @@ def set_combined_disc_number(df: pd.DataFrame) -> None:
         df.drop(['albumartist'], axis=1, inplace=True)
 
 
-def extract_options(df, column):
-    try:
-        options = list(df[column].drop_duplicates().values)
-    except KeyError:
-        options = []
-    return options
+#TODO: Replace code in interface.py
+#replaced by MP3Table.entries
+#def extract_options(df, column):
+#    try:
+#        options = list(df[column].drop_duplicates().values)
+#    except KeyError:
+#        options = []
+#    return options
 
 
 def collect_data(path: Path):

@@ -5,6 +5,7 @@ from musictagger.core import BASEPATH, extract_options
 MAX_DIR_LEVEL = 10
 
 
+#TODO: refactor to use MP3Table.entries
 def update_based_on_previous_value(df: pd.DataFrame, column: str, options=None) -> None:
     if options:
         selection = st.sidebar.selectbox(f'Update {column}',
