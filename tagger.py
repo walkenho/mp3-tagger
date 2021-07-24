@@ -1,10 +1,9 @@
 import streamlit as st
 
-from musictagger.core import delete_column, \
-    MP3Table, \
-    DISCNUMBER, ALBUM, GENRE, ARTIST, ALBUMARTIST, ENCODEDBY, COPYRIGHT, set_combined_track_number, \
-    set_combined_disc_number, TITLE, DATE, COMPOSER,\
-    TRACKNUMBER, LANGUAGE, add_albumart, LENGTH, BASEPATH
+from musictagger.core import MP3Table, set_mp3_coverart,\
+    DISCNUMBER, ALBUM, GENRE, ARTIST, ALBUMARTIST, ENCODEDBY, COPYRIGHT, \
+    TITLE, DATE, COMPOSER,\
+    TRACKNUMBER, LANGUAGE, LENGTH, BASEPATH
 from musictagger.interface import get_albumpath_from_interface, update_based_on_previous_value
 
 st.title("Welcome to the Music Tagger")
@@ -30,16 +29,17 @@ if folder:
 
             category_values = [str(v) for v in mp3table.data[category].unique()]
             if len(category_values) > 1:
-                st.warning(f"{category}: Multiple Entries found [{(', ').join(category_values)}]")
+                st.warning(f"{category}: Multiple Entries found [{', '.join(category_values)}]")
                 problem_counter = problem_counter + 1
         else:
             st.warning(f"{category}: Tags not found")
 
-    for category in mp3table.data.columns:
-        if category not in [ALBUM, ARTIST, ALBUMARTIST, GENRE, LANGUAGE, DATE]:
-            if mp3table.data[category].isnull().values.any():
-                st.warning(f"{category}: Contains Nulls - filling with empty string")
-                mp3table.data[category].fillna('', inplace=True)
+    #for category in mp3table.data.columns:
+    #    if category not in [ALBUM, ARTIST, ALBUMARTIST, GENRE, LANGUAGE, DATE]:
+            # this should work now that the delete option is there
+            #if mp3table.data[category].isnull().values.any():
+            #    st.warning(f"{category}: Contains Nulls - filling with empty string")
+            #    mp3table.data[category].fillna('', inplace=True)
     # What was that supposed to do?
     #        st.warning(f"{category}: Tags not found")
 
@@ -58,21 +58,21 @@ if folder:
         else:
             options = None
         if st.sidebar.checkbox(f'Update {category}'):
-            update_based_on_previous_value(mp3table.data, category, options)
+            update_based_on_previous_value(mp3table, category, options)
 
         if category == ALBUMARTIST:
             if st.sidebar.checkbox(f"Set {ALBUMARTIST} to {ARTIST}"):
                 mp3table.data[ALBUMARTIST] = mp3table.data[ARTIST]
 
     if st.sidebar.checkbox(f'Cast {TRACKNUMBER} to n/m format'):
-        set_combined_track_number(mp3table.data)
+        mp3table.set_combined_track_number()
 
     if st.sidebar.checkbox(f"Set {DISCNUMBER}"):
         disc_number = st.sidebar.text_input(f"Set {DISCNUMBER}")
         mp3table.data[DISCNUMBER] = disc_number
 
     if st.sidebar.checkbox(f'Cast {DISCNUMBER} to n/m format'):
-        set_combined_disc_number(mp3table.data)
+        mp3table.set_combined_disc_number()
 
     st.sidebar.markdown("### Popular - Track")
     if st.sidebar.checkbox(f'Set {TITLE}'):
@@ -84,11 +84,14 @@ if folder:
     st.sidebar.markdown("## Other")
     for category in [LENGTH, COPYRIGHT, ENCODEDBY]:
         if st.sidebar.checkbox(f'Delete {category}'):
-            delete_column(mp3table.data, category)
+            mp3table.delete_tag(category)
 
+    #TODO: Make this generated dynamically
     for category in ['bmp', 'media', 'organization', COMPOSER, 'conductor', 'lyricist', 'website', 'version']:
         if st.sidebar.checkbox(f'Update {category}'):
-            update_based_on_previous_value(mp3table.data, category)
+            update_based_on_previous_value(mp3table, category)
+
+    #TODO: Add delete option dynamically for all tags
 
     st.markdown("### Updated Tags:")
     st.write(mp3table.data)
@@ -96,8 +99,6 @@ if folder:
     save_button = st.button("Save")
     if save_button:
         mp3table.retag()
-        #tags = get_tags(tagtable)
-        #retag(tags)
         st.balloons()
 
     st.header('CoverArt')
@@ -111,7 +112,7 @@ if folder:
         if save_button_coverart:
             if image_path:
                 for audio_path in mp3table.data['filename']:
-                    add_albumart(audio_path, BASEPATH / image_path)
+                    set_mp3_coverart(audio_path, BASEPATH / image_path)
                 st.balloons()
             else:
                 st.error("Please specify filepath to coverart")
