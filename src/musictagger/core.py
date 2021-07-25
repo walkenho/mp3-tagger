@@ -4,12 +4,10 @@ from pathlib import Path
 
 import mutagen
 import pandas as pd
-from typing import List
 
 from mutagen.asf import ASFError
-from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3NoHeaderError, ID3, APIC
-from mutagen.mp3 import HeaderNotFoundError, error, MP3
+from mutagen.id3 import ID3, APIC
+from mutagen.mp3 import HeaderNotFoundError
 
 from datetime import datetime
 import json
@@ -33,8 +31,7 @@ COMPOSER= 'composer'
 
 
 def find_all_mp3s(path):
-    return [Path(filename) for filename in
-               glob.iglob(str(path / '**' / '*.mp3'), recursive=True)]
+    return [Path(filename) for filename in glob.iglob(str(path / '**' / '*.mp3'), recursive=True)]
 
 
 @dataclass
@@ -47,6 +44,7 @@ class MP3Table:
         for f in find_all_mp3s(self.path):
             audio = load_mp3(f)
             if audio:
+                # no tags (yet)
                 if not dict(audio).keys():
                     self.data = self.data.append(pd.DataFrame.from_dict({'filename': [f.relative_to(BASEPATH)]}))
                 else:
@@ -69,27 +67,41 @@ class MP3Table:
 
     #TODO: Refactor
     def set_combined_track_number(self) -> None:
-        df = self.data
-        if DISCNUMBER not in df.columns:
-            df['disc_int'] = 1
+        df = self.data.copy()
+
+        grouping_columns = []
+
+        # albums are grouped by albumartist if existent, otherwise by artist (presumably equivalent to albumartist)
+        if 'albumartist' in df.columns:
+            grouping_columns.append('albumartist')
         else:
-            df[DISCNUMBER] = df[DISCNUMBER].fillna(1)
-            df['disc_int'] = df[DISCNUMBER].map(lambda x: track_number_from_track_total_track_combination(x))
+            grouping_columns.append(ARTIST)
 
-        df['track_int'] = df[TRACKNUMBER].map(lambda x: track_number_from_track_total_track_combination(x))
+        grouping_columns.append(ALBUM)
 
-        if 'albumartist' not in df.columns:
-            df['albumartist'] = df['artist']
-            del_albumartist = True
-        else:
-            del_albumartist = False
+        # is discnumber is present, tracks are counted by disc
+        # standardize by casting strings to ints
+        if DISCNUMBER in df.columns:
+            df[DISCNUMBER] = df[DISCNUMBER].fillna(1)\
+                .map(lambda x: track_number_from_track_total_track_combination(x))
+            grouping_columns.append(DISCNUMBER)
 
-        max_track_dict = df.groupby(['albumartist', ALBUM, 'disc_int']).max('track_int').to_dict()['track_int']
+        df[TRACKNUMBER] = df[TRACKNUMBER].map(lambda x: track_number_from_track_total_track_combination(x))
 
-        df[TRACKNUMBER] = df[['track_int', 'albumartist', ALBUM, 'disc_int']].apply(
-            lambda x: create_combined_track_nr(x[0], x[1], x[2], x[3], max_track_dict), axis=1)
+        #TODO: Convert to join!! *facepalm*
+        max_track = df.groupby(grouping_columns)\
+            [[TRACKNUMBER]]\
+            .max()\
+            .rename(columns={TRACKNUMBER: 'total_tracks'})
 
-        df.drop(['track_int', 'disc_int'], axis=1, inplace=True)
+        df = df.join(max_track)
+        #TODO:
+        df[TRACKNUMBER] =  df[[TRACKNUMBER, 'total_tracks']].agg(('/').join(), axis=1)
+        #df[TRACKNUMBER] = df[['track_int', 'albumartist', ALBUM, 'disc_int']].apply(
+        #    #lambda x: create_combined_track_nr(x[0], x[1], x[2], x[3], max_track_dict), axis=1)
+        #    lambda x: f"{x[0]: 02}/{max_track_dict[(x[1], x[2], x[3])]}", axis=1)
+
+        #df.drop(['track_int', 'disc_int'], axis=1, inplace=True)
 
         if del_albumartist:
             df.drop(['albumartist'], axis=1, inplace=True)
