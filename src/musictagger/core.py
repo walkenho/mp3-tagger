@@ -65,73 +65,72 @@ class MP3Table:
         """Set column entry to None. This will trigger tag deletion in tag_song"""
         self.data[category] = None
 
-    #TODO: Refactor
     def set_combined_track_number(self) -> None:
-        df = self.data.copy()
-
         grouping_columns = []
 
-        # albums are grouped by albumartist if existent, otherwise by artist (presumably equivalent to albumartist)
-        if 'albumartist' in df.columns:
-            grouping_columns.append('albumartist')
+        # albums are grouped by albumartist if existent, otherwise by artist
+        # (presumably equivalent to albumartist)
+        # you can't just check if albumartist exists and otherwise use artist on a whole df level
+        # since entry structure can be different in different albums
+        if 'albumartist' in self.data.columns:
+            self.data['artist_grouping_column'] = self.data['albumartist'].fillna(self.data[ARTIST])
         else:
-            grouping_columns.append(ARTIST)
-
-        grouping_columns.append(ALBUM)
+            self.data['artist_grouping_column'] = self.data[ARTIST]
+        columns_to_drop = ['artist_grouping_column']
+        grouping_columns = ['artist_grouping_column', ALBUM]
 
         # is discnumber is present, tracks are counted by disc
         # standardize by casting strings to ints
-        if DISCNUMBER in df.columns:
-            df[DISCNUMBER] = df[DISCNUMBER].fillna(1)\
+        if DISCNUMBER in self.data.columns:
+            self.data[f'{DISCNUMBER}_int'] = self.data[DISCNUMBER].fillna(1)\
                 .map(lambda x: track_number_from_track_total_track_combination(x))
-            grouping_columns.append(DISCNUMBER)
+            grouping_columns.append(f'{DISCNUMBER}_int')
+            columns_to_drop.append(DISCNUMBER)
 
-        df[TRACKNUMBER] = df[TRACKNUMBER].map(lambda x: track_number_from_track_total_track_combination(x))
+        self.data[TRACKNUMBER] = self.data[TRACKNUMBER].map(lambda x: track_number_from_track_total_track_combination(x))
 
-        #TODO: Convert to join!! *facepalm*
-        max_track = df.groupby(grouping_columns)\
+        max_track = self.data.groupby(grouping_columns)\
             [[TRACKNUMBER]]\
             .max()\
             .rename(columns={TRACKNUMBER: 'total_tracks'})
+        columns_to_drop.append('total_tracks')
 
-        df = df.join(max_track)
-        #TODO:
-        df[TRACKNUMBER] =  df[[TRACKNUMBER, 'total_tracks']].agg(('/').join(), axis=1)
-        #df[TRACKNUMBER] = df[['track_int', 'albumartist', ALBUM, 'disc_int']].apply(
-        #    #lambda x: create_combined_track_nr(x[0], x[1], x[2], x[3], max_track_dict), axis=1)
-        #    lambda x: f"{x[0]: 02}/{max_track_dict[(x[1], x[2], x[3])]}", axis=1)
+        self.data = self.data.join(max_track, on=grouping_columns)
 
-        #df.drop(['track_int', 'disc_int'], axis=1, inplace=True)
+        self.data[TRACKNUMBER] = self.data[[TRACKNUMBER, 'total_tracks']].astype('str').agg('/'.join, axis=1)
+        self.data.drop(columns_to_drop, axis=1, inplace=True)
 
-        if del_albumartist:
-            df.drop(['albumartist'], axis=1, inplace=True)
-
-        self.data = df
-
-    #TODO: Refactor
     def set_combined_disc_number(self) -> None:
-        df = self.data.copy()
 
-        df[DISCNUMBER] = df[DISCNUMBER].fillna(1)
-        df['disc_int'] = df[DISCNUMBER].map(lambda x: track_number_from_track_total_track_combination(x))
-
-        if 'albumartist' not in df.columns:
-            df['albumartist'] = df['artist']
-            del_albumartist = True
+        if DISCNUMBER in self.data.columns:
+            self.data[f'{DISCNUMBER}_int'] = self.data[DISCNUMBER].fillna(1) \
+                .map(lambda x: track_number_from_track_total_track_combination(x))
         else:
-            del_albumartist = False
+            # Not sure this makes much sense, buy hey ;)
+            self.data[f'{DISCNUMBER}_int'] = 1
 
-        max_disc_dict = df.groupby(['albumartist', ALBUM]).max('disc_int').to_dict()['disc_int']
+        # albums are grouped by albumartist if existent, otherwise by artist
+        # (presumably equivalent to albumartist)
+        # you can't just check if albumartist exists and otherwise use artist on a whole df level
+        # since entry structure can be different in different albums
+        if 'albumartist' in self.data.columns:
+            self.data['artist_grouping_column'] = self.data['albumartist'].fillna(self.data[ARTIST])
+        else:
+            self.data['artist_grouping_column'] = self.data[ARTIST]
 
-        df[DISCNUMBER] = df[['disc_int', 'albumartist', ALBUM]].apply(
-            lambda x: create_combined_disc_nr(x[0], x[1], x[2], max_disc_dict), axis=1)
+        grouping_columns = ['artist_grouping_column', ALBUM]
 
-        df.drop(['disc_int'], axis=1, inplace=True)
+        max_disc = self.data.groupby(['albumartist', ALBUM])\
+            [[f'{DISCNUMBER}_int']]\
+            .max()\
+            .rename(columns={f'{DISCNUMBER}_int': 'total_discs'})
 
-        if del_albumartist:
-            df.drop(['albumartist'], axis=1, inplace=True)
+        self.data = self.data.join(max_disc, on=grouping_columns)
 
-        self.data = df
+        self.data[DISCNUMBER] = self.data[[f'{DISCNUMBER}_int', 'total_discs']].astype('str').agg('/'.join, axis=1)
+
+        columns_to_drop = [f'{DISCNUMBER}_int', 'artist_grouping_column', 'total_discs']
+        self.data.drop(columns_to_drop, axis=1, inplace=True)
 
 
 def load_mp3(path: Path, easy=True):
@@ -179,11 +178,12 @@ def tag_song(filepath: Path, **tags) -> None:
                 audio[k] = v
             # if no value was given in table, delete tag
             else:
-                audio.__delitem__(k)
-            except KeyError:
-                # None tags are added due to the existence of tags in other mp3 in the table.
-                # If KeyError is thrown, tag did not exist in the first place, so all good :)
-                pass
+                try:
+                    audio.__delitem__(k)
+                except KeyError:
+                    # None tags are added due to the existence of tags in other mp3 in the table.
+                    # If KeyError is thrown, tag did not exist in the first place, so all good :)
+                    pass
         audio.save()
 
 
