@@ -197,14 +197,6 @@ def track_number_from_track_total_track_combination(track_string:str) -> int:
     return int(str(track_string).split('/')[0])
 
 
-def create_combined_track_nr(track_int: int, artist: str, album: str, disc_int: int, mydict: dict) -> str:
-    return f"{track_int:02}/{mydict[(artist, album, disc_int)]}"
-
-
-def create_combined_disc_nr(disc_int: int, artist: str, album: str, mydict: dict) -> str:
-    return f"{disc_int}/{mydict[(artist, album)]}"
-
-
 def set_mp3_coverart(audio_path, image_path):
     """Set album art of MP3 file
 
@@ -213,7 +205,6 @@ def set_mp3_coverart(audio_path, image_path):
      image_path: path of album art image (needs to be jpeg)
     """
     # EasyID3 does not allow for image tagging, use standard ID3
-    #audio = MP3(audio_path, ID3=ID3)
     audio = load_mp3(audio_path, easy=False)
 
     # delete all images if existing
