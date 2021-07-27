@@ -1,4 +1,3 @@
-import pandas as pd
 import streamlit as st
 from musictagger.core import BASEPATH, MP3Table
 
