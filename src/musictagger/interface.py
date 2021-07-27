@@ -1,24 +1,23 @@
-import pandas as pd
 import streamlit as st
-from musictagger.core import BASEPATH, extract_options
+from musictagger.core import BASEPATH, MP3Table
 
 MAX_DIR_LEVEL = 10
 
 
-def update_based_on_previous_value(df: pd.DataFrame, column: str, options=None) -> None:
+def update_based_on_previous_value(songs: MP3Table, category: str, options=None) -> None:
     if options:
-        selection = st.sidebar.selectbox(f'Update {column}',
-                                         options=extract_options(df, column) + ['Select from Options',
+        selection = st.sidebar.selectbox(f'Update {category}',
+                                         options=songs.get_entries(category) + ['Select from Options',
                                                                                 'Update Manually'])
     else:
-        selection = st.sidebar.selectbox(f'Update {column}',
-                                         options=extract_options(df, column) + ['Update Manually'])
+        selection = st.sidebar.selectbox(f'Update {category}',
+                                         options=songs.get_entries(category) + ['Update Manually'])
     if selection == "Select from Options":
-        df[column] = st.sidebar.selectbox(f'Select {column}', options)
+        songs.data[category] = st.sidebar.selectbox(f'Select {category}', options)
     elif selection == 'Update Manually':
-        df[column] = st.sidebar.text_input(f'Provide a new entry for {column}', '')
+        songs.data[category] = st.sidebar.text_input(f'Provide a new entry for {category}', '')
     else:
-        df[column] = selection
+        songs.data[category] = selection
 
 
 def get_albumpath_from_interface():
