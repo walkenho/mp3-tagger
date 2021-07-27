@@ -78,12 +78,14 @@ if folder:
     for category in tags_to_delete:
         mp3table.delete_tag(category)
 
-    st.sidebar.markdown("### Other")
-    for category in set(mp3table.data.columns)\
+    minor_categories = set(mp3table.data.columns)\
             .difference(major_update_categories)\
-            .difference(['filename', TRACKNUMBER, DISCNUMBER]):
-        if st.sidebar.checkbox(f'Update {category}'):
-            update_based_on_previous_value(mp3table, category)
+            .difference(['filename', TRACKNUMBER, DISCNUMBER, TITLE])
+    if minor_categories:
+        st.sidebar.markdown("### Other")
+        for category in minor_categories:
+            if st.sidebar.checkbox(f'Update {category}'):
+                update_based_on_previous_value(mp3table, category)
 
     st.header("Updated Tags")
     st.write(mp3table.data)
