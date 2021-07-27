@@ -174,7 +174,7 @@ def tag_song(filepath: Path, **tags) -> None:
     audio = load_mp3(filepath)
     if audio:
         for k, v in tags.items():
-            if v:
+            if not pd.isnull(v):
                 audio[k] = v
             # if no value was given in table, delete tag
             else:
@@ -237,6 +237,7 @@ def collect_data(path: Path):
 
 
 if __name__ == '__main__':
+    #TODO: Refactor
     timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     results = []
     skip_counter = 0
