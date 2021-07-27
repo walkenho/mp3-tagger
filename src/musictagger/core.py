@@ -207,8 +207,7 @@ def set_mp3_coverart(audio_path, image_path):
     # EasyID3 does not allow for image tagging, use standard ID3
     audio = load_mp3(audio_path, easy=False)
 
-    # delete all images if existing
-    # TODO: add link
+    # https://www.programcreek.com/python/example/73822/mutagen.id3.APIC
     if ID3.getall('APIC'):
         ID3.delall('APIC')
     audio.tags.add(APIC(mime='image/jpeg',
