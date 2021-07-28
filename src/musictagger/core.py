@@ -9,10 +9,9 @@ from mutagen.asf import ASFError
 from mutagen.id3 import ID3, APIC
 from mutagen.mp3 import HeaderNotFoundError
 
-from datetime import datetime
-import json
+import logging
+logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-#BASEPATH = Path('/media/walkenho/Seagate Backup Plus Drive/Eigene Musik')
 BASEPATH = Path('/home/walkenho/repositories/music-tagger/Juliane Werding/')
 
 DISCNUMBER = 'discnumber'
@@ -142,15 +141,15 @@ def load_mp3(path: Path, easy=True):
             try:
                 audio.add_tags()
             except Exception as err:
-                print(f"Error {err.args[0]} occured when trying to add empty tags to {path}.")
+                logging.error(f"Error {err.args[0]} occured when trying to add empty tags to {path}.")
                 return
         return audio
     except HeaderNotFoundError:
-        print(f"Header Not Found error for {path} - Not a valid MP3 file")
+        logging.warning(f"Header Not Found error for {path} - Not a valid MP3 file")
     except ASFError:
-        print(f"ASFError for {path}")
+        logging.warning(f"ASFError for {path}")
     except Exception as err:
-        print(f"Error {err.args[0]} occured when trying to load {path}.")
+        logging.warning(f"Error {err.args[0]} occured when trying to load {path}.")
 
 
 def tag_song(filepath: Path, **tags) -> None:
@@ -216,55 +215,3 @@ def set_mp3_coverart(audio_path, image_path):
                         desc=u'Cover',
                         data=open(image_path, 'rb').read()))
     audio.save()
-
-
-def collect_data(path: Path):
-    results = []
-    skip_counter = 0
-    untagged_counter = 0
-    files_total = 0
-    for f in find_all_mp3s(path):
-        files_total = files_total + 1
-        audio = load_mp3(f)
-        if audio is not None:
-            results.append({**{k: v[0] for k, v in {**dict(audio)}.items()}, 'filename': BASEPATH / f})
-            if not audio:
-                untagged_counter = untagged_counter + 1
-        else:
-            skip_counter = skip_counter + 1
-    return results, skip_counter, untagged_counter, files_total
-
-
-if __name__ == '__main__':
-    #TODO: Refactor
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-    results = []
-    skip_counter = 0
-    untagged_counter = 0
-    files_counter = 0
-    folders = (BASEPATH).glob('*')
-
-    with open('details_'+timestamp+'.txt', 'w') as f:
-        for folder in folders:
-            res, sc, uc, fc = collect_data(BASEPATH/folder)
-            f.writelines(f"Entering folder {str(folder)}.\n")
-            for entry in res:
-                entry['filename'] = str(entry['filename'])
-                results = results + [entry]
-            skip_counter = skip_counter + sc
-            untagged_counter = untagged_counter + uc
-            files_counter = files_counter + fc
-            if sc != 0:
-                f.writelines(f"{sc} files skipped in this folder. Now {skip_counter} files skipped in total.\n")
-            if uc !=0:
-                f.writelines(f"{uc} files without tags in this folder. Now {untagged_counter} without tags in total\n")
-
-    with open('summary_'+timestamp+'.txt', 'w') as f:
-        f.writelines("======================\n")
-        f.writelines(f"{files_counter} mp3s analyzed\n")
-        f.writelines(f"{len(results)} mp3s were added to table\n")
-        f.writelines(f"{skip_counter} files skipped\n")
-        f.writelines(f"Out of the ingested, {untagged_counter} completely untagged\n")
-
-    with open('data_'+timestamp+'.json', 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=4)
