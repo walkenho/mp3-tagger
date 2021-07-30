@@ -1,3 +1,5 @@
+# MP3-Tagger
+
 An app to help organize MP3 tags by providing an intuitive interface to bulk-analyze and retag MP3 files.
 
 Written in python using the streamlit interface and dockerized for ease of use.

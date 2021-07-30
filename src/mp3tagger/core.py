@@ -1,37 +1,38 @@
 import glob
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 import mutagen
 import pandas as pd
-
 from mutagen.asf import ASFError
-from mutagen.id3 import ID3, APIC
+from mutagen.id3 import APIC, ID3
 from mutagen.mp3 import HeaderNotFoundError
 
-import logging
-logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
 
-#BASEPATH = Path('/home/walkenho/repositories/music-tagger/Juliane Werding/')
-BASEPATH = Path('/home/data')
+BASEPATH = Path("/home/data")
 
-DISCNUMBER = 'discnumber'
-ALBUM = 'album'
-GENRE = 'genre'
-ARTIST = 'artist'
-ALBUMARTIST = 'albumartist'
-ENCODEDBY = 'encodedby'
-COPYRIGHT = 'copyright'
-TRACKNUMBER = 'tracknumber'
-TITLE = 'title'
-DATE = 'date'
-LANGUAGE = 'language'
-LENGTH = 'length'
-COMPOSER= 'composer'
+DISCNUMBER = "discnumber"
+ALBUM = "album"
+GENRE = "genre"
+ARTIST = "artist"
+ALBUMARTIST = "albumartist"
+ENCODEDBY = "encodedby"
+COPYRIGHT = "copyright"
+TRACKNUMBER = "tracknumber"
+TITLE = "title"
+DATE = "date"
+LANGUAGE = "language"
+LENGTH = "length"
+COMPOSER = "composer"
 
 
 def find_all_mp3s(path):
-    return [Path(filename) for filename in glob.iglob(str(path / '**' / '*.mp3'), recursive=True)]
+    return [
+        Path(filename)
+        for filename in glob.iglob(str(path / "**" / "*.mp3"), recursive=True)
+    ]
 
 
 @dataclass
@@ -46,14 +47,19 @@ class MP3Table:
             if audio:
                 # no tags (yet)
                 if not dict(audio).keys():
-                    self.data = self.data.append(pd.DataFrame.from_dict({'filename': [f.relative_to(BASEPATH)]}))
+                    self.data = self.data.append(
+                        pd.DataFrame.from_dict({"filename": [f.relative_to(BASEPATH)]})
+                    )
                 else:
-                    self.data = self.data.append(pd.DataFrame.from_dict({**dict(audio), 'filename': f.relative_to(BASEPATH)}))
+                    self.data = self.data.append(
+                        pd.DataFrame.from_dict(
+                            {**dict(audio), "filename": f.relative_to(BASEPATH)}
+                        )
+                    )
 
     def retag(self):
-        for filename, row in self.data.set_index('filename').iterrows():
-            #TODO: Can't this do without the **?
-            tag_song(BASEPATH/filename, **row.to_dict())
+        for filename, row in self.data.set_index("filename").iterrows():
+            tag_song(BASEPATH / filename, row.to_dict())
 
     def get_entries(self, category):
         try:
@@ -72,64 +78,84 @@ class MP3Table:
         # (presumably equivalent to albumartist)
         # you can't just check if albumartist exists and otherwise use artist on a whole df level
         # since entry structure can be different in different albums
-        if 'albumartist' in self.data.columns:
-            self.data['artist_grouping_column'] = self.data['albumartist'].fillna(self.data[ARTIST])
+        if "albumartist" in self.data.columns:
+            self.data["artist_grouping_column"] = self.data["albumartist"].fillna(
+                self.data[ARTIST]
+            )
         else:
-            self.data['artist_grouping_column'] = self.data[ARTIST]
-        columns_to_drop = ['artist_grouping_column']
-        grouping_columns = ['artist_grouping_column', ALBUM]
+            self.data["artist_grouping_column"] = self.data[ARTIST]
+        columns_to_drop = ["artist_grouping_column"]
+        grouping_columns = ["artist_grouping_column", ALBUM]
 
         # is discnumber is present, tracks are counted by disc
         # standardize by casting strings to ints
         if DISCNUMBER in self.data.columns:
-            self.data[f'{DISCNUMBER}_int'] = self.data[DISCNUMBER].fillna(1)\
+            self.data[f"{DISCNUMBER}_int"] = (
+                self.data[DISCNUMBER]
+                .fillna(1)
                 .map(lambda x: track_number_from_track_total_track_combination(x))
-            grouping_columns.append(f'{DISCNUMBER}_int')
+            )
+            grouping_columns.append(f"{DISCNUMBER}_int")
             columns_to_drop.append(DISCNUMBER)
 
-        self.data[TRACKNUMBER] = self.data[TRACKNUMBER].map(lambda x: track_number_from_track_total_track_combination(x))
+        self.data[TRACKNUMBER] = self.data[TRACKNUMBER].map(
+            lambda x: track_number_from_track_total_track_combination(x)
+        )
 
-        max_track = self.data.groupby(grouping_columns)\
-            [[TRACKNUMBER]]\
-            .max()\
-            .rename(columns={TRACKNUMBER: 'total_tracks'})
-        columns_to_drop.append('total_tracks')
+        max_track = (
+            self.data.groupby(grouping_columns)[[TRACKNUMBER]]
+            .max()
+            .rename(columns={TRACKNUMBER: "total_tracks"})
+        )
+        columns_to_drop.append("total_tracks")
 
         self.data = self.data.join(max_track, on=grouping_columns)
 
-        self.data[TRACKNUMBER] = self.data[[TRACKNUMBER, 'total_tracks']].astype('str').agg('/'.join, axis=1)
+        self.data[TRACKNUMBER] = (
+            self.data[[TRACKNUMBER, "total_tracks"]].astype("str").agg("/".join, axis=1)
+        )
         self.data.drop(columns_to_drop, axis=1, inplace=True)
 
     def set_combined_disc_number(self) -> None:
 
         if DISCNUMBER in self.data.columns:
-            self.data[f'{DISCNUMBER}_int'] = self.data[DISCNUMBER].fillna(1) \
+            self.data[f"{DISCNUMBER}_int"] = (
+                self.data[DISCNUMBER]
+                .fillna(1)
                 .map(lambda x: track_number_from_track_total_track_combination(x))
+            )
         else:
             # Not sure this makes much sense, buy hey ;)
-            self.data[f'{DISCNUMBER}_int'] = 1
+            self.data[f"{DISCNUMBER}_int"] = 1
 
         # albums are grouped by albumartist if existent, otherwise by artist
         # (presumably equivalent to albumartist)
         # you can't just check if albumartist exists and otherwise use artist on a whole df level
         # since entry structure can be different in different albums
-        if 'albumartist' in self.data.columns:
-            self.data['artist_grouping_column'] = self.data['albumartist'].fillna(self.data[ARTIST])
+        if "albumartist" in self.data.columns:
+            self.data["artist_grouping_column"] = self.data["albumartist"].fillna(
+                self.data[ARTIST]
+            )
         else:
-            self.data['artist_grouping_column'] = self.data[ARTIST]
+            self.data["artist_grouping_column"] = self.data[ARTIST]
 
-        grouping_columns = ['artist_grouping_column', ALBUM]
+        grouping_columns = ["artist_grouping_column", ALBUM]
 
-        max_disc = self.data.groupby(['albumartist', ALBUM])\
-            [[f'{DISCNUMBER}_int']]\
-            .max()\
-            .rename(columns={f'{DISCNUMBER}_int': 'total_discs'})
+        max_disc = (
+            self.data.groupby(["albumartist", ALBUM])[[f"{DISCNUMBER}_int"]]
+            .max()
+            .rename(columns={f"{DISCNUMBER}_int": "total_discs"})
+        )
 
         self.data = self.data.join(max_disc, on=grouping_columns)
 
-        self.data[DISCNUMBER] = self.data[[f'{DISCNUMBER}_int', 'total_discs']].astype('str').agg('/'.join, axis=1)
+        self.data[DISCNUMBER] = (
+            self.data[[f"{DISCNUMBER}_int", "total_discs"]]
+            .astype("str")
+            .agg("/".join, axis=1)
+        )
 
-        columns_to_drop = [f'{DISCNUMBER}_int', 'artist_grouping_column', 'total_discs']
+        columns_to_drop = [f"{DISCNUMBER}_int", "artist_grouping_column", "total_discs"]
         self.data.drop(columns_to_drop, axis=1, inplace=True)
 
 
@@ -142,7 +168,9 @@ def load_mp3(path: Path, easy=True):
             try:
                 audio.add_tags()
             except Exception as err:
-                logging.error(f"Error {err.args[0]} occured when trying to add empty tags to {path}.")
+                logging.error(
+                    f"Error {err.args[0]} occured when trying to add empty tags to {path}."
+                )
                 return
         return audio
     except HeaderNotFoundError:
@@ -153,7 +181,7 @@ def load_mp3(path: Path, easy=True):
         logging.warning(f"Error {err.args[0]} occured when trying to load {path}.")
 
 
-def tag_song(filepath: Path, **tags) -> None:
+def tag_song(filepath: Path, tags) -> None:
     """
     Allowed tags:
     * album, artist, albumartist
@@ -164,7 +192,8 @@ def tag_song(filepath: Path, **tags) -> None:
     'version', 'conductor', 'arranger',  'organization',
     'author', 'albumartistsort', 'albumsort', 'composersort', 'artistsort', 'titlesort',
     'isrc', 'discsubtitle', 'originaldate', 'performer:*', 'musicbrainz_trackid',
-    'website', 'replaygain_*_gain', 'replaygain_*_peak', 'musicbrainz_artistid', 'musicbrainz_albumid',
+    'website', 'replaygain_*_gain', 'replaygain_*_peak', 'musicbrainz_artistid',
+    'musicbrainz_albumid',
     'musicbrainz_albumartistid', 'musicbrainz_trmid', 'musicip_puid', 'musicip_fingerprint',
     'musicbrainz_albumstatus', 'musicbrainz_albumtype', 'releasecountry', 'musicbrainz_discid',
     'asin', 'performer', 'barcode', 'catalognumber', 'musicbrainz_releasetrackid',
@@ -187,14 +216,13 @@ def tag_song(filepath: Path, **tags) -> None:
         audio.save()
 
 
-
-def track_number_from_track_total_track_combination(track_string:str) -> int:
+def track_number_from_track_total_track_combination(track_string: str) -> int:
     """Extract the numerical tracknumber from a string track number.
      Input can be of format:
     * track
     * track/total tracks
     """
-    return int(str(track_string).split('/')[0])
+    return int(str(track_string).split("/")[0])
 
 
 def set_mp3_coverart(audio_path, image_path):
@@ -208,11 +236,15 @@ def set_mp3_coverart(audio_path, image_path):
     audio = load_mp3(audio_path, easy=False)
 
     # https://www.programcreek.com/python/example/73822/mutagen.id3.APIC
-    if ID3.getall('APIC'):
-        ID3.delall('APIC')
-    audio.tags.add(APIC(mime='image/jpeg',
-                        encoding=0, # Latin1
-                        type=3, # cover/front image
-                        desc=u'Cover',
-                        data=open(image_path, 'rb').read()))
+    if ID3.getall("APIC"):
+        ID3.delall("APIC")
+    audio.tags.add(
+        APIC(
+            mime="image/jpeg",
+            encoding=0,  # Latin1
+            type=3,  # cover/front image
+            desc="Cover",
+            data=open(image_path, "rb").read(),
+        )
+    )
     audio.save()
