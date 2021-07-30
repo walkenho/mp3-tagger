@@ -5,13 +5,16 @@ from mp3tagger.core import MP3Table, set_mp3_coverart,\
     TITLE, DATE, TRACKNUMBER, LANGUAGE, BASEPATH
 from mp3tagger.interface import get_albumpath_from_interface, update_based_on_previous_value
 
-st.title("Welcome to the Music Tagger")
+st.title("Welcome to the MP3 Tagger")
 st.markdown("""## Instructions:
-1. Select the Albums you would like to retag.
-2. Select the procedures to apply from the sidebar.
-3. Check the results.
-4. If you are happy with the results, press Save.
-5. If desired, select a cover image""")
+1. Select the Albums you would like to retag. - Drill down as many layers as needed.
+ Choose "All" to load all MP3s in the selected folder (including subfolders).
+2. Select the cleaning steps to apply from the sidebar. 
+3. The proposed new tags are shown in the bottom table. Check the results.
+4. Once you are happy with the results, press Save.
+5. If desired, add a cover image to your files. You can choose from jpegs/jpgs in the current folder. If your
+image does not appear, check the file extension. 
+""")
 
 folder = get_albumpath_from_interface()
 if folder:
