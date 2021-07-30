@@ -1,5 +1,5 @@
 import streamlit as st
-from musictagger.core import BASEPATH, MP3Table
+from mp3tagger.core import BASEPATH, MP3Table
 
 MAX_DIR_LEVEL = 10
 

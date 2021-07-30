@@ -12,7 +12,8 @@ from mutagen.mp3 import HeaderNotFoundError
 import logging
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-BASEPATH = Path('/home/walkenho/repositories/music-tagger/Juliane Werding/')
+#BASEPATH = Path('/home/walkenho/repositories/music-tagger/Juliane Werding/')
+BASEPATH = Path('/home/data')
 
 DISCNUMBER = 'discnumber'
 ALBUM = 'album'
