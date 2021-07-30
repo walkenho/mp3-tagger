@@ -1,9 +1,9 @@
 import streamlit as st
 
-from musictagger.core import MP3Table, set_mp3_coverart,\
+from mp3tagger.core import MP3Table, set_mp3_coverart,\
     DISCNUMBER, ALBUM, GENRE, ARTIST, ALBUMARTIST, \
     TITLE, DATE, TRACKNUMBER, LANGUAGE, BASEPATH
-from musictagger.interface import get_albumpath_from_interface, update_based_on_previous_value
+from mp3tagger.interface import get_albumpath_from_interface, update_based_on_previous_value
 
 st.title("Welcome to the Music Tagger")
 st.markdown("""## Instructions:

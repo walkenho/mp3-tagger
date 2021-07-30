@@ -120,10 +120,10 @@ description = "The AWS SDK for Python"
 name = "boto3"
 optional = false
 python-versions = ">= 3.6"
-version = "1.18.9"
+version = "1.18.11"
 
 [package.dependencies]
-botocore = ">=1.21.9,<1.22.0"
+botocore = ">=1.21.11,<1.22.0"
 jmespath = ">=0.7.1,<1.0.0"
 s3transfer = ">=0.5.0,<0.6.0"
 
@@ -133,7 +133,7 @@ description = "Low-level, data-driven core of boto 3."
 name = "botocore"
 optional = false
 python-versions = ">= 3.6"
-version = "1.21.9"
+version = "1.21.11"
 
 [package.dependencies]
 jmespath = ">=0.7.1,<1.0.0"
@@ -503,14 +503,6 @@ version = "0.8.4"
 
 [[package]]
 category = "main"
-description = "ID3 data editor"
-name = "mp3-tagger"
-optional = false
-python-versions = "*"
-version = "1.0"
-
-[[package]]
-category = "main"
 description = "read and write audio tags for many formats"
 name = "mutagen"
 optional = false
@@ -753,7 +745,7 @@ version = "0.7.0"
 [[package]]
 category = "main"
 description = "library with cross-python path, ini-parsing, io, code, log facilities"
-marker = "python_version >= \"3.4\" and implementation_name == \"pypy\" or implementation_name == \"pypy\""
+marker = "python_version >= \"3.4\" and implementation_name == \"pypy\""
 name = "py"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
@@ -773,6 +765,7 @@ numpy = ">=1.16.6"
 [[package]]
 category = "main"
 description = "C parser in Python"
+marker = "python_version >= \"3.4\" and implementation_name == \"pypy\""
 name = "pycparser"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
@@ -845,7 +838,7 @@ version = "2021.1"
 [[package]]
 category = "main"
 description = "Python for Window Extensions"
-marker = "python_version >= \"3.4\" and sys_platform == \"win32\" or sys_platform == \"win32\""
+marker = "python_version >= \"3.4\" and sys_platform == \"win32\""
 name = "pywin32"
 optional = false
 python-versions = "*"
@@ -1124,7 +1117,7 @@ version = "3.5.1"
 notebook = ">=4.4.1"
 
 [metadata]
-content-hash = "947d7894ddb08590a4d6a5e6f0b84fd77612bb68e79f5b88b12b4151e213aa14"
+content-hash = "45e2de092a913503c4a4033c8f91232b30f9e793aa4ccd38d1f18cb832fd7640"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -1184,12 +1177,12 @@ blinker = [
     {file = "blinker-1.4.tar.gz", hash = "sha256:471aee25f3992bd325afa3772f1063dbdbbca947a041b8b89466dc00d606f8b6"},
 ]
 boto3 = [
-    {file = "boto3-1.18.9-py3-none-any.whl", hash = "sha256:ada486d25d5fccbadb19ffbfcfa47293a801f8afd158f2deb0fdb72f639f5a6b"},
-    {file = "boto3-1.18.9.tar.gz", hash = "sha256:57f464a318c078551fbf87f73a7c15055ba1ffc5bea9b54bc85776c14e7a709f"},
+    {file = "boto3-1.18.11-py3-none-any.whl", hash = "sha256:4c1638a31da2948180bf66fac2971e0350b6b04c1b90910cd15247c77209ccaf"},
+    {file = "boto3-1.18.11.tar.gz", hash = "sha256:ca675c724fa0fe05e992a7146cc5e1a3b3262c4323c83c7a8fcc69f9e5e47f8b"},
 ]
 botocore = [
-    {file = "botocore-1.21.9-py3-none-any.whl", hash = "sha256:08e1d028934e8d14610bbbb2f716378a2882d9651c20cb9e1ae873169362a79b"},
-    {file = "botocore-1.21.9.tar.gz", hash = "sha256:c9a60ecf9dbae5d678008dda2b8850fc68203d82a6b31513a654601422f8f451"},
+    {file = "botocore-1.21.11-py3-none-any.whl", hash = "sha256:601f820ed340a85ed62d91b4eaeb768b9ff0529add75a074592fb7c51db7bd00"},
+    {file = "botocore-1.21.11.tar.gz", hash = "sha256:b5e9128a259fc0fe5a8c2b717f5d7e8a1321321981b5d5679939e12d4142c0f3"},
 ]
 cachetools = [
     {file = "cachetools-4.2.2-py3-none-any.whl", hash = "sha256:2cc0b89715337ab6dbba85b5b50effe2b0c74e035d83ee8ed637cf52f12ae001"},
@@ -1435,9 +1428,6 @@ matplotlib-inline = [
 mistune = [
     {file = "mistune-0.8.4-py2.py3-none-any.whl", hash = "sha256:88a1051873018da288eee8538d476dffe1262495144b33ecb586c4ab266bb8d4"},
     {file = "mistune-0.8.4.tar.gz", hash = "sha256:59a3429db53c50b5c6bcc8a07f8848cb00d7dc8bdb431a4ab41920d201d4756e"},
-]
-mp3-tagger = [
-    {file = "mp3-tagger-1.0.tar.gz", hash = "sha256:05cbe93f5cb7c71ff920b4923120e95a898f27d0a6b20d55365041b5b81c49c3"},
 ]
 mutagen = [
     {file = "mutagen-1.45.1-py3-none-any.whl", hash = "sha256:9c9f243fcec7f410f138cb12c21c84c64fde4195481a30c9bfb05b5f003adfed"},

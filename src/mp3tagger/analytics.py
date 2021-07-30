@@ -7,7 +7,7 @@ from musictagger.core import find_all_mp3s, load_mp3, BASEPATH
 import logging
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-DATAFOLDER = Path().cwd().parent.parent/'data'
+DATAFOLDER = Path().cwd().parent.parent/'analytics'
 
 
 def collect_data(path: Path):
