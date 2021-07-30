@@ -9,6 +9,9 @@ python = "^3.8"
 pandas = "^1.1.4"
 streamlit = "^0.71.0"
 mutagen = "^1.45.1"
+black = "^21.7b0"
+flake8 = "^3.9.2"
+flake8-isort = "^4.0.0"
 
 [tool.poetry.dev-dependencies]
 
