@@ -1,4 +1,4 @@
-<image-src=https://github.com/walkenho/mp3-tagger/cover.png'>
+<image-src="https://github.com/walkenho/mp3-tagger/cover.png">
 
 # MP3-Tagger
 
