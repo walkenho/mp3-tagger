@@ -4,9 +4,9 @@
 
 An app to help organize MP3 tags by providing an intuitive interface to bulk-analyze and retag MP3 files.
 
-Written in python using the streamlit interface and dockerized for ease of use.
+Written in python it uses mutagen for tagging, streamlit to build the interface and comes dockerized for ease of use.
 
-In addition to the retagging functionality also provides the option to produce analytics on the file tag health.
+In addition to the retagging functionality, it provides the option to produce analytics on the file tag health.
 (Note that the analytics functionality can currently on be used locally, not as part of the docker functionality.)
 
 Usage (docker-based):
@@ -15,4 +15,9 @@ Usage (docker-based):
 
 Follow the instructions provided at the top of the app. 
 
-Happy Organizing! :) 
+Happy Organizing! :)
+
+PS: The purpose of this app is to make it easy for the user to manually standardize
+MP3 tags based on the tags of other MP3s or by manual specification. If you are looking for 
+an app that allows tagging based on audio finger prints, there are great, professional,
+free-for-use solutions out there (personally, I have made good experiences with Picasa.) 
