@@ -1,8 +1,6 @@
 import streamlit as st
 
-from mp3tagger.core import MP3Table, set_mp3_coverart,\
-    DISCNUMBER, ALBUM, GENRE, ARTIST, ALBUMARTIST, \
-    TITLE, DATE, TRACKNUMBER, LANGUAGE, BASEPATH
+from mp3tagger.core import MP3Table, set_mp3_coverart, TagNames, BASEPATH
 from mp3tagger.interface import get_albumpath_from_interface, update_based_on_previous_value
 
 st.title("Welcome to the MP3 Tagger")
@@ -24,7 +22,8 @@ if folder:
     st.header('Health Check')
     problem_counter = 0
     missing_tags = []
-    for category in [ALBUM, ARTIST, ALBUMARTIST, GENRE, LANGUAGE, DATE]:
+    for category in [TagNames.ALBUM.value, TagNames.ARTIST.value, TagNames.ALBUMARTIST.value,
+                     TagNames.GENRE.value, TagNames.LANGUAGE.value, TagNames.DATE.value]:
         if category in mp3table.data.columns:
             if mp3table.data[category].isnull().values.any():
                 st.warning(f"{category}: Contains Nulls")
@@ -45,35 +44,36 @@ if folder:
     # Build sidebar menu
     st.sidebar.markdown("# Cleaning Tools")
     st.sidebar.markdown("### Popular - Album/Multiple Tracks")
-    major_update_categories = [ALBUM, ARTIST, ALBUMARTIST, GENRE, LANGUAGE, DATE]
+    major_update_categories = [TagNames.ALBUM.value, TagNames.ARTIST.value, TagNames.ALBUMARTIST.value,
+                               TagNames.GENRE.value, TagNames.LANGUAGE.value, TagNames.DATE.value]
     for category in major_update_categories:
-        if category == LANGUAGE:
+        if category == TagNames.LANGUAGE.value:
             options = ['english', 'spanish', 'deutsch', 'french']
         else:
             options = None
         if st.sidebar.checkbox(f'Update {category}'):
             update_based_on_previous_value(mp3table, category, options)
 
-        if category == ALBUMARTIST:
-            if st.sidebar.checkbox(f"Set {ALBUMARTIST} to {ARTIST}"):
-                mp3table.data[ALBUMARTIST] = mp3table.data[ARTIST]
+        if category == TagNames.ALBUMARTIST.value:
+            if st.sidebar.checkbox(f"Set {TagNames.ALBUMARTIST.value} to {TagNames.ARTIST.value}"):
+                mp3table.data[TagNames.ALBUMARTIST.value] = mp3table.data[TagNames.ARTIST.value]
 
-    if st.sidebar.checkbox(f'Cast {TRACKNUMBER} to n/m format'):
+    if st.sidebar.checkbox(f'Cast {TagNames.TRACKNUMBER.value} to n/m format'):
         mp3table.set_combined_track_number()
 
-    if st.sidebar.checkbox(f"Set {DISCNUMBER}"):
-        disc_number = st.sidebar.text_input(f"Set {DISCNUMBER}")
-        mp3table.data[DISCNUMBER] = disc_number
+    if st.sidebar.checkbox(f"Set {TagNames.DISCNUMBER.value}"):
+        disc_number = st.sidebar.text_input(f"Set {TagNames.DISCNUMBER.value}")
+        mp3table.data[TagNames.DISCNUMBER.value] = disc_number
 
-    if st.sidebar.checkbox(f'Cast {DISCNUMBER} to n/m format'):
+    if st.sidebar.checkbox(f'Cast {TagNames.DISCNUMBER.value} to n/m format'):
         mp3table.set_combined_disc_number()
 
     st.sidebar.markdown("### Popular - Single Track")
-    if st.sidebar.checkbox(f'Set {TITLE}'):
-        mp3table.data[TITLE] = st.sidebar.text_input(f"Set {TITLE}")
+    if st.sidebar.checkbox(f'Set {TagNames.TITLE.value}'):
+        mp3table.data[TagNames.TITLE.value] = st.sidebar.text_input(f"Set {TagNames.TITLE.value}")
 
-    if st.sidebar.checkbox(f'Set {TRACKNUMBER}'):
-        mp3table.data[TRACKNUMBER] = st.sidebar.text_input(f"Set {TRACKNUMBER}")
+    if st.sidebar.checkbox(f'Set {TagNames.TRACKNUMBER.value}'):
+        mp3table.data[TagNames.TRACKNUMBER.value] = st.sidebar.text_input(f"Set {TagNames.TRACKNUMBER.value}")
 
     st.sidebar.markdown("### Delete Tags")
     tags_to_delete = st.sidebar.multiselect('Tags to delete (multi-choice)',
@@ -83,7 +83,7 @@ if folder:
 
     minor_categories = set(mp3table.data.columns)\
             .difference(major_update_categories)\
-            .difference(['filename', TRACKNUMBER, DISCNUMBER, TITLE])
+            .difference(['filename', TagNames.TRACKNUMBER.value, TagNames.DISCNUMBER.value, TagNames.TITLE.value])
     if minor_categories:
         st.sidebar.markdown("### Other")
         for category in minor_categories:
