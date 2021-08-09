@@ -1,3 +1,4 @@
+from enum import Enum
 import glob
 import logging
 from dataclasses import dataclass
@@ -13,19 +14,27 @@ logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S
 
 BASEPATH = Path("/home/data")
 
-DISCNUMBER = "discnumber"
-ALBUM = "album"
-GENRE = "genre"
-ARTIST = "artist"
-ALBUMARTIST = "albumartist"
-ENCODEDBY = "encodedby"
-COPYRIGHT = "copyright"
-TRACKNUMBER = "tracknumber"
-TITLE = "title"
-DATE = "date"
-LANGUAGE = "language"
-LENGTH = "length"
-COMPOSER = "composer"
+class TagNames(str, Enum):
+    ALBUM = "album"
+    """Album Name"""
+    ARTIST = "artist"
+    ALBUMARTIST = "albumartist"
+    """Album artist / band"""
+    COMPOSER = "composer"
+    COPYRIGHT = "copyright"
+    DATE = "date"
+    """Data / Year"""
+    DISCNUMBER = "discnumber"
+    ENCODEDBY = "encodedby"
+    GENRE = "genre"
+    """Genre"""
+    LANGUAGE = "language"
+    LENGTH = "length"
+    TITLE = "title"
+    TRACKNUMBER = "tracknumber"
+
+    def __str__(self) -> str:  # makes enum values duck-type to strings
+        return str.__str__(self)
 
 
 def find_all_mp3s(path):
