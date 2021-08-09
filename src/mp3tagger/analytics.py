@@ -40,7 +40,7 @@ def collect_data(path: Path):
 
 
 def filter_serializable_data(tags: List[dict]) -> List[dict]:
-    """Filterp3tagger tags that are serializable (for example of type ASFBoolAtttributes"""
+    """Filter out tags that are serializable (for example of type ASFBoolAtttributes"""
     serializable_tags = []
     for t in tags:
         try:
