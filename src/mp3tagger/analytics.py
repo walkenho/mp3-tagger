@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List
 
 import pandas as pd
-from musictagger.core import BASEPATH, find_all_mp3s, load_mp3
+from mp3tagger.core import BASEPATH, find_all_mp3s, load_mp3
 
 logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
 
@@ -40,7 +40,7 @@ def collect_data(path: Path):
 
 
 def filter_serializable_data(tags: List[dict]) -> List[dict]:
-    """Filter out tags that are serializable (for example of type ASFBoolAtttributes"""
+    """Filterp3tagger tags that are serializable (for example of type ASFBoolAtttributes"""
     serializable_tags = []
     for t in tags:
         try:
